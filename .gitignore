@@ -1,0 +1,4 @@
+runs/
+*.pt
+*.pth
+classification_split/
