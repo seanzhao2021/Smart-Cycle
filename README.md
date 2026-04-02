@@ -1,4 +1,6 @@
 # Smart-Cycle
 AI powered smart recycling web app.
 
-Classification split datasets can be downloaded at ___
+# Key Results
+
+dataset can be downloaded at https://www.kaggle.com/datasets/sumn2u/dwaste-data-v4-annotated
