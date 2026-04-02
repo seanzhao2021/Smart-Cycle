@@ -1,11 +1,8 @@
-# train_classification.py --data_dir classification_split --model_name mobilenet --epochs 20 --batch_size 32 --img_size 224 --output_dir runs
-
 import argparse
 import copy
 import json
-import os
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -13,13 +10,16 @@ import timm
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from PIL import Image
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
-from torch.utils.data import DataLoader
-from torchvision import datasets, models, transforms
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Dataset
+from torchvision import models, transforms
 
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
 def set_seed(seed: int = 42) -> None:
@@ -46,6 +46,22 @@ def get_transforms(img_size: int = 224):
     return train_tfms, val_tfms
 
 
+class WasteClassificationDataset(Dataset):
+    def __init__(self, samples: List[Tuple[Path, int]], transform=None):
+        self.samples = samples
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int):
+        img_path, label = self.samples[idx]
+        image = Image.open(img_path).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+
 def get_model(model_name: str, num_classes: int, pretrained: bool = True) -> nn.Module:
     model_name = model_name.lower()
 
@@ -68,10 +84,18 @@ def get_model(model_name: str, num_classes: int, pretrained: bool = True) -> nn.
         model.fc = nn.Linear(in_features, num_classes)
 
     elif model_name == "efficientnetv2_s":
-        model = timm.create_model("tf_efficientnetv2_s.in21k_ft_in1k", pretrained=pretrained, num_classes=num_classes)
+        model = timm.create_model(
+            "tf_efficientnetv2_s.in21k_ft_in1k",
+            pretrained=pretrained,
+            num_classes=num_classes,
+        )
 
     elif model_name == "efficientnetv2_m":
-        model = timm.create_model("tf_efficientnetv2_m.in21k_ft_in1k", pretrained=pretrained, num_classes=num_classes)
+        model = timm.create_model(
+            "tf_efficientnetv2_m.in21k_ft_in1k",
+            pretrained=pretrained,
+            num_classes=num_classes,
+        )
 
     else:
         raise ValueError(f"Unsupported model_name: {model_name}")
@@ -94,7 +118,6 @@ def freeze_backbone(model: nn.Module, model_name: str) -> None:
             param.requires_grad = True
 
     elif model_name in {"efficientnetv2_s", "efficientnetv2_m"}:
-        # timm models generally expose classifier / head
         if hasattr(model, "classifier"):
             for param in model.classifier.parameters():
                 param.requires_grad = True
@@ -113,6 +136,43 @@ def unfreeze_all(model: nn.Module) -> None:
 def get_optimizer(model: nn.Module, lr: float, weight_decay: float) -> optim.Optimizer:
     params = [p for p in model.parameters() if p.requires_grad]
     return optim.AdamW(params, lr=lr, weight_decay=weight_decay)
+
+
+def collect_samples(data_dir: Path, class_names: List[str]) -> List[Tuple[Path, int]]:
+    samples = []
+
+    for class_idx, class_name in enumerate(class_names):
+        class_dir = data_dir / class_name
+        if not class_dir.exists():
+            print(f"[WARNING] Missing class folder: {class_dir}")
+            continue
+
+        for file_path in class_dir.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() in IMAGE_EXTENSIONS:
+                samples.append((file_path, class_idx))
+
+    return samples
+
+
+def stratified_split(
+    samples: List[Tuple[Path, int]],
+    val_ratio: float,
+    seed: int
+) -> Tuple[List[Tuple[Path, int]], List[Tuple[Path, int]]]:
+    paths = [s[0] for s in samples]
+    labels = [s[1] for s in samples]
+
+    train_paths, val_paths, train_labels, val_labels = train_test_split(
+        paths,
+        labels,
+        test_size=val_ratio,
+        random_state=seed,
+        stratify=labels,
+    )
+
+    train_samples = list(zip(train_paths, train_labels))
+    val_samples = list(zip(val_paths, val_labels))
+    return train_samples, val_samples
 
 
 def train_one_epoch(
@@ -215,40 +275,65 @@ def save_metrics(metrics: Dict, class_names: list, output_dir: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, required=True,
-                        help="Path to classification dataset root containing train/ and val/")
-    parser.add_argument("--model_name", type=str, required=True,
-                        choices=["mobilenet", "resnet50", "resnet101", "efficientnetv2_s", "efficientnetv2_m"])
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        required=True,
+        help="Path to raw detection-style dataset root containing class folders."
+    )
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        required=True,
+        choices=["mobilenet", "resnet50", "resnet101", "efficientnetv2_s", "efficientnetv2_m"]
+    )
     parser.add_argument("--epochs", type=int, default=20)
-    parser.add_argument("--warmup_epochs", type=int, default=3,
-                        help="Freeze backbone for first N epochs, then unfreeze all")
+    parser.add_argument("--warmup_epochs", type=int, default=3)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--img_size", type=int, default=224)
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--val_ratio", type=float, default=0.2)
     parser.add_argument("--output_dir", type=str, default="runs")
     parser.add_argument("--save_name", type=str, default=None)
     args = parser.parse_args()
 
     set_seed(args.seed)
 
+    class_names = [
+        "biological",
+        "cardboard",
+        "glass",
+        "metal",
+        "paper",
+        "plastic",
+        "trash",
+    ]
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     train_tfms, val_tfms = get_transforms(args.img_size)
 
-    train_dir = Path(args.data_dir) / "train"
-    val_dir = Path(args.data_dir) / "val"
+    data_dir = Path(args.data_dir)
+    all_samples = collect_samples(data_dir, class_names)
 
-    train_dataset = datasets.ImageFolder(train_dir, transform=train_tfms)
-    val_dataset = datasets.ImageFolder(val_dir, transform=val_tfms)
+    if not all_samples:
+        raise RuntimeError(f"No images found under {data_dir}")
 
-    class_names = train_dataset.classes
-    num_classes = len(class_names)
+    train_samples, val_samples = stratified_split(
+        samples=all_samples,
+        val_ratio=args.val_ratio,
+        seed=args.seed,
+    )
+
+    train_dataset = WasteClassificationDataset(train_samples, transform=train_tfms)
+    val_dataset = WasteClassificationDataset(val_samples, transform=val_tfms)
 
     print(f"Classes: {class_names}")
+    print(f"Total images: {len(all_samples)}")
     print(f"Train size: {len(train_dataset)}")
     print(f"Val size: {len(val_dataset)}")
 
@@ -267,7 +352,7 @@ def main():
         pin_memory=True,
     )
 
-    model = get_model(args.model_name, num_classes=num_classes, pretrained=True)
+    model = get_model(args.model_name, num_classes=len(class_names), pretrained=True)
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
