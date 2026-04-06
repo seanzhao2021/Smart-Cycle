@@ -1,6 +1,10 @@
 # Smart-Cycle
 AI powered smart recycling web app.
 
+# Dependencies
+
+pip install ultralytics
+
 # Run
 
 python train_classification.py --data_dir <PATH_TO_DATASET> --model_name <model> --epochs 20 --batch_size 32 --img_size 224 --output_dir runs
