@@ -1,0 +1,198 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #9da4aa;
+  color: #1f2937;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 32px 20px;
+}
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.app-header {
+  margin-bottom: 24px;
+}
+
+.app-title {
+  margin: 0 0 8px 0;
+  font-size: 2rem;
+  color: #000000;
+}
+
+.app-subtitle {
+  margin: 0;
+  color: #000000;
+}
+
+.control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  background: rgb(230, 230, 230);
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.file-input {
+  max-width: 260px;
+}
+
+.button {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-primary {
+  background: #2563eb;
+  color: white;
+}
+
+.button-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.status-text {
+  margin: 0 0 20px 0;
+  color: #000000;
+}
+
+.error-banner {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.card {
+  background: rgb(230, 230, 230);
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.card-title {
+  margin: 0 0 14px 0;
+  font-size: 1.1rem;
+  color: #000000;
+}
+
+.media-frame {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111827;
+}
+
+.webcam-video,
+.preview-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 12px;
+}
+
+.webcam-video {
+  width: 640px;
+  height: 480px;
+  object-fit: cover;
+  background: black;
+}
+
+.preview-image {
+  height: auto;
+}
+
+.detection-box {
+  position: absolute;
+  border: 2px solid #ef4444;
+  box-sizing: border-box;
+}
+
+.detection-label {
+  display: inline-block;
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.result-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.result-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-class {
+  font-weight: 700;
+}
+
+.empty-text {
+  color: #6b7280;
+  margin: 0;
+}
+
+.helper-text {
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .webcam-video {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+}
