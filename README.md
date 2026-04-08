@@ -15,6 +15,8 @@ cd frontend
 npm install
 ```
 
+Dataset can be downloaded at https://www.kaggle.com/datasets/sumn2u/dwaste-data-v4-annotated
+
 ## Training
 
 ```
@@ -37,7 +39,7 @@ python train_cbam_yolo.py
 ```
 Training graphs can be observed in ultralytics/runs/detect/
 
-## Smart Cycle Web App
+## Smart Cycle Web App Startup
 To start up the web app
 ```
 cd backend
@@ -50,4 +52,4 @@ npm run dev
 ```
 # Key Results
 
-Dataset can be downloaded at https://www.kaggle.com/datasets/sumn2u/dwaste-data-v4-annotated
+Key results and insights can be found in docs/experiments.md
