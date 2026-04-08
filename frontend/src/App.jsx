@@ -51,6 +51,44 @@ export default function App() {
 
   const [cameraReady, setCameraReady] = useState(false);
 
+  const disposalGuidance = {
+    cardboard: {
+      title: "Cardboard",
+      message:
+        "Flatten clean cardboard before recycling. Keep it dry, and throw it away if it is heavily soaked with food or grease.",
+    },
+    glass: {
+      title: "Glass",
+      message:
+        "Rinse glass containers before recycling. Remove obvious non-glass parts when possible. Broken glass may need to go in the trash depending on local rules.",
+    },
+    metal: {
+      title: "Metal",
+      message:
+        "Rinse metal cans and containers before recycling. Empty food cans and many aluminum containers are commonly accepted.",
+    },
+    paper: {
+      title: "Paper",
+      message:
+        "Recycle clean, dry paper. Do not recycle paper that is heavily contaminated with food, oil, or liquids.",
+    },
+    plastic: {
+      title: "Plastic",
+      message:
+        "Rinse plastic containers before recycling. Check local rules because not all plastic types are accepted in curbside recycling.",
+    },
+    trash: {
+      title: "Trash",
+      message:
+        "This item is likely general waste. Place it in the trash unless your local facility has a special drop-off or recovery program for it.",
+    },
+    other: {
+      title: "Other",
+      message:
+        "This item may need special handling. Check your local recycling or waste program to see whether it belongs in recycling, trash, or a specialty drop-off stream.",
+    },
+  };
+
   const startCamera = async () => {
     try {
       setError("");
@@ -179,6 +217,14 @@ export default function App() {
     await runDetectionFromBlob(blob, objectUrl, "webcam");
   };
 
+  const detectedClasses = result
+    ? [...new Set(result.detections.map((det) => det.class.toLowerCase()))]
+    : [];
+
+  const detectedGuidance = detectedClasses
+    .map((cls) => disposalGuidance[cls])
+    .filter(Boolean);
+
   return (
     <div className="app-shell">
       <div className="app-container">
@@ -305,17 +351,63 @@ export default function App() {
               result.detections.length === 0 ? (
                 <p className="empty-text">No objects detected.</p>
               ) : (
-                <ul className="result-list">
-                  {result.detections.map((det, index) => (
-                    <li key={index} className="result-item">
-                      <div className="result-class">{det.class}</div>
-                      <div>Confidence: {det.confidence}</div>
-                      <div>
-                        BBox: [{det.bbox.map((v) => Math.round(v)).join(", ")}]
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="result-list">
+                    {result.detections.map((det, index) => (
+                      <li key={index} className="result-item">
+                        <div className="result-class">{det.class}</div>
+                        <div>Confidence: {det.confidence}</div>
+                        <div>
+                          BBox: [{det.bbox.map((v) => Math.round(v)).join(", ")}]
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {detectedGuidance.length > 0 && (
+                    <div style={{ marginTop: "1.5rem" }}>
+                      <h3
+                        style={{
+                          margin: "0 0 0.75rem 0",
+                          fontSize: "1rem",
+                          color: "#111827",
+                        }}
+                      >
+                        Disposal Guidance
+                      </h3>
+
+                      {detectedGuidance.map((item, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            marginBottom: "0.75rem",
+                            padding: "0.75rem",
+                            background: "#f9fafb",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "10px",
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: "0.25rem" }}>
+                            {item.title}
+                          </div>
+                          <div>{item.message}</div>
+                        </div>
+                      ))}
+
+                      <p
+                        style={{
+                          fontSize: "0.9rem",
+                          color: "#6b7280",
+                          marginTop: "0.75rem",
+                          marginBottom: 0,
+                        }}
+                      >
+                        Disposal rules vary by location. Check your local recycling
+                        program for final guidance.
+                      </p>
+                    </div>
+                  )}
+                </>
               )
             ) : (
               <p className="empty-text">

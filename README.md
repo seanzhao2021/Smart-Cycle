@@ -1,5 +1,5 @@
 # Smart-Cycle
-AI powered smart recycling web app. Documented training and testing procedures in docs/experiments.md. On web app, users can upload images to scan for waste or use a webcam and detect from live feed.
+AI powered smart recycling web app. Documented training and testing procedures in docs/experiments.md. On web app, users can upload images to scan for waste or use a webcam and detect from live feed. After app detects which class the waste belongs to, it will provide users with insight on how to responsibly dispose of it.
 
 # Dependencies
 
@@ -16,6 +16,7 @@ npm install
 ```
 
 Dataset can be downloaded at https://www.kaggle.com/datasets/sumn2u/dwaste-data-v4-annotated
+Note you will need to split your dataset into train, test, and val split folders if you want to train your own model.
 
 ## Training
 
